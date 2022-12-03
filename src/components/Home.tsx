@@ -457,7 +457,7 @@ const Home = () => {
               viewBox="0 0 24 24"
               strokeWidth="1.5"
               stroke="currentColor"
-              className="w-6 h-6"
+              className="w-6 h-6  mt-1"
               onClick={() => {
                 setAddUser(true);
                 setUserID(0);
