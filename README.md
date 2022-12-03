@@ -6,6 +6,8 @@ In this small practice project, I created a CRUD [REST api](https://github.com/g
 
 It's done with **react** and **tsc** and the style belongs to **tailwind.css**
 
+## Functionality
+
 ### Read and delete
 ![Read and delete functionality](./public/home.PNG)
 
