@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios, { AxiosResponse } from "axios";
+import { isTemplateExpression } from "typescript";
 
 interface User {
   id: number;
+  name: string;
+  email: string;
+  state: any;
+}
+
+interface CreateUser {
   name: string;
   email: string;
   state: any;
@@ -15,9 +22,10 @@ const Home = () => {
   const [userNameVerif, setUserNameVerif] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [userEmailVerif, setUserEmailVerif] = useState<string>("");
-  const [userState, setUserState] = useState<any>(false);
+  const [userState, setUserState] = useState<any>(true);
   const [userStateVerif, setUserStateVerif] = useState<any>(false);
   const [addUser, setAddUser] = useState<any>(false);
+  const [addUserState, setAddUserState] = useState<any>(false);
   const [alert, setAlert] = useState<string>("");
 
   useEffect(() => {
@@ -29,7 +37,6 @@ const Home = () => {
       .get("http://localhost:8000/api/users")
       .then((res: AxiosResponse) => {
         setUsersList(res.data.users);
-        console.log(res.data.users);
       })
       .catch((err: Error) => {
         console.log(err);
@@ -47,50 +54,89 @@ const Home = () => {
     let newUser: user = {};
 
     //----------comprobaciones----------
-
-    //error
-    //si no realizo cambios
-
-    //si el mail no tiene formato apropiado
-
-    //si el mail es igual al anterior
-
-    //objeto
-
-    
-
-    //si hay casillas vacias
-    emptyInputVerif(userName.trim(), userEmail.trim(), alert)
-      .then(async () => {
-        if (userName !== userNameVerif) newUser.name = userName;
-        if (userEmail !== userEmailVerif) newUser.email = userEmail;
-        if (userState !== userStateVerif) newUser.state = userState;
-        console.log(newUser);
-        await axios
-          .put(url, )
-          .then((res) => {
-            console.log(res);
-            resetUser();
+    // si no realizo cambios => si estan vacias => si el mail no tiene formato
+    noChangesVerif(
+      userName,
+      userNameVerif,
+      userEmail,
+      userEmailVerif,
+      userState,
+      userStateVerif
+    )
+      .then(() => {
+        emptyInputVerif(userName.trim(), userEmail.trim())
+          .then(() => {
+            emailFormatVerif(userEmail)
+              .then(async () => {
+                if (userName !== userNameVerif) newUser.name = userName;
+                if (userEmail !== userEmailVerif) newUser.email = userEmail;
+                if (userState !== userStateVerif) newUser.state = userState;
+                console.log(newUser);
+                await axios
+                  .put(url, newUser)
+                  .then((res) => {
+                    console.log(res);
+                    resetUser();
+                  })
+                  .catch((err) => console.log(err));
+              })
+              .catch((err) => {
+                setAlert(err);
+                console.log(err);
+              });
           })
-          .catch((err) => console.log(err));
+          .catch((err) => {
+            setAlert(err);
+            console.log(err);
+          });
       })
       .catch((err) => {
         setAlert(err);
-        console.log(err)
+        console.log(err);
+      });
+
+    emptyInputVerif(userName.trim(), userEmail.trim())
+      .then(async () => {})
+      .catch((err) => {
+        setAlert(err);
+        console.log(err);
       });
   };
 
-  function emptyInputVerif(
+  function noChangesVerif(
     userName: string | undefined,
+    originName: string | undefined,
     userEmail: string | undefined,
-    alert: String | undefined
+    originEmail: string | undefined,
+    userState: boolean,
+    originState: boolean
   ) {
     return new Promise((resolve, reject) => {
-      const name = userName;
-      const email = userEmail;
-      const msg = alert;
-        if (name && email) resolve(true);
-        else reject('Complete los campos vacíos');
+      if (
+        userName == originName &&
+        userEmail == originEmail &&
+        userState == originState
+      ) {
+        reject("No realizó cambios");
+      } else resolve(true);
+    });
+  }
+
+  function emptyInputVerif(
+    userName: string | undefined,
+    userEmail: string | undefined
+  ) {
+    return new Promise((resolve, reject) => {
+      if (userName && userEmail) resolve(true);
+      else reject("Complete los campos vacíos");
+    });
+  }
+
+  function emailFormatVerif(userEmail: string) {
+    return new Promise((resolve, reject) => {
+      if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(userEmail)) {
+        resolve(true);
+      } else reject("El mail es incorrecto");
     });
   }
 
@@ -105,12 +151,54 @@ const Home = () => {
     setAlert("");
   }
 
+  const postUser = async (e: any) => {
+    e.preventDefault();
+    const url = "http://localhost:8000/api/users";
+    const name = e.target.name.value.trim();
+    const email = e.target.email.value.trim().toLowerCase();
+    console.log(`${name} ${email} ${addUserState}`);
+    let emailVerif: Array<string | any> = [];
+    
+    //esoy inteando berificar si el array esta vacio o no
+
+    const user: CreateUser = {
+      name: name,
+      email: email,
+      state: addUserState,
+    };
+    emptyInputVerif(name, email)
+      .then(() => {
+        emailFormatVerif(email)
+          .then(async () => {
+            await axios
+              .post(url, user)
+              .then((res) => {
+                console.log(res);
+                setAddUser(false);
+                window.location.reload()
+              })
+              .catch((err) => {
+                console.log(err.response.data);
+              });
+          })
+          .catch((err) => {
+            setAlert(err);
+          });
+      })
+      .catch((err) => {
+        setAlert("Complete todos los campos");
+      });
+  };
+
   const deleteUser = async (e: any) => {
     const id = e.target.attributes.getNamedItem("data-id").value;
     const url: string = `http://localhost:8000/api/users/${id}`;
     await axios
       .delete(url)
-      .then((res) => console.log(res))
+      .then((res) => {
+        console.log(res);
+        window.location.reload()
+      })
       .catch((err) => console.log(err));
   };
 
@@ -127,11 +215,12 @@ const Home = () => {
       setUserEmail(email);
       setUserEmailVerif(email);
 
+      console.log(state);
       setUserState(state);
       setUserStateVerif(state);
+      setAddUser(false);
     }
   };
-
 
   return (
     <div>
@@ -181,14 +270,16 @@ const Home = () => {
                       type="checkbox"
                       name="state"
                       onChange={(e) => {
-                        if (userState == true) setUserState(false);
-                        else setUserState(true);
-                        console.log(userState);
+                        setUserState(e.target.value);
                       }}
                       value={userState}
                     />
                   </form>
-                  {alert ? alert : ""}
+                  {alert ? (
+                    <div className="text-red-400 border pl-2">{alert}</div>
+                  ) : (
+                    ""
+                  )}
                   <div className="absolute top-px left-full flex">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -282,40 +373,76 @@ const Home = () => {
           <div>empty</div>
         )}
         {addUser ? (
-          <form
-            className="grid grid-cols-4 text-center w-fit text-slate-500"
-            onSubmit={updateUser}
-            id="user-info-form"
-          >
-            <div className=" border border-t-0 w-60 [&>:nth-child(last)]::rounded-xl">
-              -
+          <div className="relative">
+            <form
+              className="grid grid-cols-4 text-center w-fit text-slate-500"
+              onSubmit={postUser}
+              id="user-add-form"
+            >
+              <div className=" border border-t-0 w-60 [&>:nth-child(last)]::rounded-xl">
+                -
+              </div>
+              <input
+                className="border border-t-0 w-60 placeholder:text-center"
+                type="text"
+                placeholder="Nombre"
+                name="name"
+                required
+              />
+
+              <input
+                className="border border-t-0 w-60 placeholder:text-center"
+                type="email"
+                placeholder="email"
+                name="email"
+                required
+              />
+
+              <input
+                className="border border-t-0 w-40"
+                type="checkbox"
+                name="state"
+                onChange={(e) => {
+                  addUserState ? setAddUserState(false) : setAddUserState(true);
+                }}
+                value={addUserState}
+              />
+              {alert ? alert : ""}
+            </form>
+            <div className="absolute top-px left-full flex">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+                stroke="currentColor"
+                className="w-6 h-6"
+                onClick={() => setAddUser(false)}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              <button form="user-add-form" type="submit">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4.5 12.75l6 6 9-13.5"
+                  />
+                </svg>
+              </button>
             </div>
-            <input
-              className="border border-t-0 w-60 placeholder:text-center"
-              type="text"
-              placeholder="Nombre"
-              name="name"
-              required
-            />
-
-            <input
-              className="border border-t-0 w-60 placeholder:text-center"
-              type="email"
-              placeholder="email"
-              name="email"
-              required
-            />
-
-            <input
-              className="border border-t-0 w-40"
-              type="checkbox"
-              name="state"
-              onChange={(e) => {
-                setUserState(e.target.value);
-              }}
-              value={userState}
-            />
-          </form>
+          </div>
         ) : (
           <div className="flex w-full justify-center">
             <svg
@@ -325,7 +452,10 @@ const Home = () => {
               strokeWidth="1.5"
               stroke="currentColor"
               className="w-6 h-6"
-              onClick={() => setAddUser(true)}
+              onClick={() => {
+                setAddUser(true);
+                setUserID(0);
+              }}
             >
               <path
                 strokeLinecap="round"
