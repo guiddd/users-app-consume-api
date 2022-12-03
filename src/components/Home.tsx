@@ -22,7 +22,7 @@ const Home = () => {
   const [userNameVerif, setUserNameVerif] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [userEmailVerif, setUserEmailVerif] = useState<string>("");
-  const [userState, setUserState] = useState<any>(true);
+  const [userState, setUserState] = useState<any>(false);
   const [userStateVerif, setUserStateVerif] = useState<any>(false);
   const [addUser, setAddUser] = useState<any>(false);
   const [addUserState, setAddUserState] = useState<any>(false);
@@ -68,6 +68,7 @@ const Home = () => {
           .then(() => {
             emailFormatVerif(userEmail)
               .then(async () => {
+                //hace más liviano el body
                 if (userName !== userNameVerif) newUser.name = userName;
                 if (userEmail !== userEmailVerif) newUser.email = userEmail;
                 if (userState !== userStateVerif) newUser.state = userState;
@@ -76,9 +77,9 @@ const Home = () => {
                   .put(url, newUser)
                   .then((res) => {
                     console.log(res);
-                    resetUser();
+                    window.location.reload()
                   })
-                  .catch((err) => console.log(err));
+                  .catch((err) => console.log(err.response.data));
               })
               .catch((err) => {
                 setAlert(err);
@@ -216,8 +217,13 @@ const Home = () => {
       setUserEmailVerif(email);
 
       console.log(state);
-      setUserState(state);
-      setUserStateVerif(state);
+      if(state == 'true') {
+        setUserStateVerif(true);
+      }
+      else {
+        setUserStateVerif(false);
+      }
+
       setAddUser(false);
     }
   };
@@ -270,7 +276,7 @@ const Home = () => {
                       type="checkbox"
                       name="state"
                       onChange={(e) => {
-                        setUserState(e.target.value);
+                        userState ? setUserState(false) : setUserState(true) 
                       }}
                       value={userState}
                     />
